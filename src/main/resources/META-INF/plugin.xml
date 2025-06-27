@@ -20,10 +20,15 @@
     <!-- Product and plugin compatibility requirements.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
     <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.json</depends>
 
     <!-- Extension points defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
-
+        <toolWindow id="JsonNavigator"
+                    anchor="right"
+                  factoryClass="chi.quran0.jsonnavigator.ui.JsonNavigatorToolWindowFactory"
+                    icon="META-INF/pluginIcon.svg"
+                    secondary="false"/>
     </extensions>
 </idea-plugin>

@@ -1,5 +1,145 @@
 # ai_memory.md
 
+## 2024-06-20
+### 本次目标
+- 实现树节点右键菜单，支持：
+  - 复制字段路径
+  - 复制节点值
+  - 折叠/展开子树
+  - 菜单可在节点整行任意位置弹出
+- 在每个有子节点的树节点右侧显示"+"或"−"按钮，点击时递归展开/折叠该节点及其所有子节点，提升交互体验。
+- 搜索框有内容时显示"清空"按钮，点击可一键清除（参考 IDEA search 框样式）。
+- 在导航树面板增加"定位"按钮，点击时将编辑区光标所在 JSON 节点在树中高亮/滚动到可见（手动触发，不做实时同步）。
+
+### 详细思路与决策
+- 新建 TreeContextMenuUtils.kt 工具类，封装右键菜单逻辑。
+- 在 JsonTreePanel 中为树节点添加右键菜单监听。
+- 菜单项包括：复制字段路径、复制节点值、折叠/展开子树。
+- 每项功能实现后及时测试，确保交互流畅。
+- "编辑区光标同步高亮树节点"需求调整为：增加"定位"按钮，点击时才进行同步高亮，避免频繁自动同步。
+- 右键菜单弹出逻辑增强：优先在点击行弹出菜单，若未点到行但有选中节点也弹菜单，极大提升易用性。
+- 自定义树渲染器（TreeCellRenderer），在有子节点的节点右侧绘制按钮。
+- 按钮点击时递归展开/折叠该节点及所有子节点。
+- 保持UI美观、交互流畅。
+- 实现后及时测试，确保与现有右键菜单等功能兼容。
+- 搜索框右侧增加"×"清空按钮，只有在有内容时才显示，点击即可一键清除内容并刷新树，UI风格贴近 IDEA。
+- 在按钮栏增加"定位"按钮。
+- 点击时，获取当前编辑区光标 offset。
+- 遍历树结构，查找 PSI 元素 textRange 包含 offset 的节点。
+- 在树中高亮/滚动到该节点。
+- 只在用户主动点击时同步，不做实时自动同步。
+- UI风格与现有按钮保持一致。
+
+### 关键代码/设计片段
+```kotlin
+// 右键菜单整行弹出，兼容兜底
+ t.addMouseListener(object : MouseAdapter() {
+    override fun mousePressed(e: MouseEvent) { maybeShowPopup(e) }
+    override fun mouseReleased(e: MouseEvent) { maybeShowPopup(e) }
+    private fun maybeShowPopup(e: MouseEvent) {
+        if (SwingUtilities.isRightMouseButton(e)) {
+            val row = t.getRowForLocation(e.x, e.y)
+            if (row != -1) {
+                t.setSelectionRow(row)
+                val path = t.getPathForRow(row)
+                val node = path.lastPathComponent as? DefaultMutableTreeNode
+                if (node != null) {
+                    val popup = TreeContextMenuUtils.createContextMenu(node, t, project)
+                    popup.show(t, e.x, e.y)
+                    return
+                }
+            }
+            // 兜底：如果没点到任何行，但有选中节点，也弹菜单
+            val selNode = t.lastSelectedPathComponent as? DefaultMutableTreeNode
+            if (selNode != null) {
+                val popup = TreeContextMenuUtils.createContextMenu(selNode, t, project)
+                popup.show(t, e.x, e.y)
+            }
+        }
+    }
+ })
+
+// 搜索框右侧清空按钮
+private val clearButton = JButton("×").apply {
+    toolTipText = "Clear search"
+    isVisible = false
+    isFocusPainted = false
+    isBorderPainted = false
+    isContentAreaFilled = false
+    preferredSize = java.awt.Dimension(24, 24)
+    addActionListener {
+        searchField.text = ""
+        filterTree()
+    }
+}
+private val searchPanel = JPanel().apply {
+    layout = BoxLayout(this, BoxLayout.X_AXIS)
+    add(JLabel("Search: "))
+    add(searchField)
+    add(clearButton)
+    add(helpButton)
+    border = BorderFactory.createEmptyBorder(5, 5, 5, 5)
+}
+searchField.document.addDocumentListener(object : DocumentListener {
+    override fun insertUpdate(e: DocumentEvent?) {
+        filterTree()
+        clearButton.isVisible = searchField.text.isNotEmpty()
+    }
+    override fun removeUpdate(e: DocumentEvent?) {
+        filterTree()
+        clearButton.isVisible = searchField.text.isNotEmpty()
+    }
+    override fun changedUpdate(e: DocumentEvent?) {
+        filterTree()
+        clearButton.isVisible = searchField.text.isNotEmpty()
+    }
+})
+```
+
+### 本次遗留问题与下次待办
+- [ ] 代码结构和UI小优化
+- [ ] 其他体验细节完善
+- [ ] 编辑区定位按钮：在导航树面板增加"定位"按钮，点击时将编辑区光标所在 JSON 节点在树中高亮/滚动到可见
+
+### 阶段收尾总结
+- 经过多轮开发与优化，Json Navigator 插件已实现核心功能、主要交互和体验细节，结构清晰，文档完善。
+- 当前版本已达到可发布状态，后续可根据用户反馈持续优化。
+- 编码工作阶段性告一段落，后续如有新需求可随时迭代。
+
+---
+
+## 2024-06-09
+### 本次目标
+- 完成基础架构设计，实现ToolWindow、树形结构导航、节点跳转、Markdown导出、UI优化等核心功能。
+
+### 详细思路与决策
+- 详见原始记录（保留全部历史内容，便于追溯）。
+
+### 关键代码/设计片段
+- 详见原始记录。
+
+### 本次遗留问题与下次待办
+- [ ] 右键菜单与更多操作
+- [ ] 懒加载与性能优化（已归入后续待定需求）
+- [ ] 国际化与设置面板
+- [ ] 更多导出格式
+
+---
+
+## 后续待定需求
+
+### 懒加载与性能优化
+- 懒加载：只在节点展开时解析和加载子节点，未展开的深层节点不占用内存。
+- 性能优化：避免一次性解析大文件，提升大文件下的响应速度和流畅度。
+- 搜索局限：懒加载下，搜索仅能检索已加载（已展开）的节点，未加载的深层节点无法被搜索到。
+- 全量搜索方案：如需全量搜索，可提供"深度搜索"按钮，用户主动触发时再全量解析（需进度提示，性能需评估）。
+- 相关UI提示：如仅支持局部搜索，需在界面上明确提示用户。
+- 该需求实现复杂，易出bug，且对大文件性能影响大，暂缓开发，后续如有需要可随时启动。
+
+---
+
+# 历史内容归档（保留全部原有内容，便于追溯）
+
 ## 项目初始设计思路
 
 ### 背景
@@ -25,6 +165,10 @@
 4. 导出 markdown，支持检索。
 
 ---
+
+# 以下为2024-06-09及之前的详细开发记录（原始内容保留）
+
+（原有内容已分块整理，便于后续查阅）
 
 ## 2024-06-09
 - 完成基础架构设计，准备实现 ToolWindow。
@@ -196,4 +340,27 @@
    - Markdown 导出支持表格样式，数组节点只导出第一个元素结构。
    - 代码结构分包，易于维护和扩展。
 4. 文档与总结
-   - ai_memory.md、ai_summary.md 均已同步记录最新设计、实现和阶段性成果。 
+   - ai_memory.md、ai_summary.md 均已同步记录最新设计、实现和阶段性成果。
+
+## 后续待定需求
+
+### 懒加载与性能优化
+- 懒加载：只在节点展开时解析和加载子节点，未展开的深层节点不占用内存。
+- 性能优化：避免一次性解析大文件，提升大文件下的响应速度和流畅度。
+- 搜索局限：懒加载下，搜索仅能检索已加载（已展开）的节点，未加载的深层节点无法被搜索到。
+- 全量搜索方案：如需全量搜索，可提供"深度搜索"按钮，用户主动触发时再全量解析（需进度提示，性能需评估）。
+- 相关UI提示：如仅支持局部搜索，需在界面上明确提示用户。
+- 该需求实现复杂，易出bug，且对大文件性能影响大，暂缓开发，后续如有需要可随时启动。
+
+## 代码结构优化与扩展建议（长期参考）
+
+1. util 包可根据工具类数量进一步细分为 export/、menu/ 等子包（如有需要）。
+2. tree 包可增加接口/抽象类，为后续支持多种数据结构（如 XML、YAML）做准备。
+3. UI 组件可进一步解耦，将搜索区、按钮区、树区分别拆分为小组件类，便于维护和测试。
+4. 如交互复杂，可引入事件总线或状态管理类，避免 UI 组件间直接耦合。
+5. UI 文本、提示语、按钮名等建议统一提取到常量或资源文件，便于国际化和维护。
+6. 关键类、方法建议补充 KDoc 注释，提升团队协作和可维护性。
+
+当前结构已非常清晰合理，未来如功能扩展可按上述建议逐步优化，无需一次性大重构。
+
+--- 

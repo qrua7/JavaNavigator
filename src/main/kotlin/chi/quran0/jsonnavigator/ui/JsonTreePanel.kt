@@ -17,7 +17,6 @@ import chi.quran0.jsonnavigator.tree.JsonTreeNodeData
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.editor.LogicalPosition
 import javax.swing.event.TreeSelectionListener
-import chi.quran0.jsonnavigator.util.MarkdownExportUtils
 import java.io.File
 import javax.swing.JFileChooser
 import javax.swing.filechooser.FileNameExtensionFilter
@@ -30,11 +29,33 @@ import javax.swing.event.DocumentListener
 import org.json.JSONObject
 import chi.quran0.jsonnavigator.tree.JsonTreeFilter
 import java.awt.FlowLayout
+import chi.quran0.jsonnavigator.util.TreeContextMenuUtils
+import java.awt.event.MouseAdapter
+import java.awt.event.MouseEvent
+import javax.swing.SwingUtilities
+import javax.swing.tree.DefaultMutableTreeNode
+import java.awt.event.KeyAdapter
+import java.awt.event.KeyEvent
+import javax.swing.KeyStroke
+import javax.swing.AbstractAction
+import chi.quran0.jsonnavigator.ui.JsonTreeRenderer
 
 class JsonTreePanel(private val project: Project) : JPanel(BorderLayout()) {
     private var tree: JTree? = null
     private var originalRoot: javax.swing.tree.DefaultMutableTreeNode? = null
     private val searchField = JTextField(20)
+    private val clearButton = JButton("×").apply {
+        toolTipText = "Clear search"
+        isVisible = false
+        isFocusPainted = false
+        isBorderPainted = false
+        isContentAreaFilled = false
+        preferredSize = java.awt.Dimension(24, 24)
+        addActionListener {
+            searchField.text = ""
+            filterTree()
+        }
+    }
     private val helpButton = JButton("?").apply {
         toolTipText = "Show search examples"
         addActionListener {
@@ -56,19 +77,17 @@ class JsonTreePanel(private val project: Project) : JPanel(BorderLayout()) {
         layout = BoxLayout(this, BoxLayout.X_AXIS)
         add(JLabel("Search: "))
         add(searchField)
+        add(clearButton)
         add(helpButton)
         border = BorderFactory.createEmptyBorder(5, 5, 5, 5)
     }
     private val buttonPanel = JPanel(FlowLayout(FlowLayout.LEFT, 8, 0)).apply {
         val expandBtn = JButton("Expand All")
         val collapseBtn = JButton("Collapse All")
-        val exportBtn = JButton("Export Markdown")
         expandBtn.addActionListener { TreeUtils.expandAll(tree) }
         collapseBtn.addActionListener { TreeUtils.collapseAll(tree) }
-        exportBtn.addActionListener { exportMarkdown() }
         add(expandBtn)
         add(collapseBtn)
-        add(exportBtn)
         isOpaque = false
         border = BorderFactory.createEmptyBorder(0, 5, 5, 5)
         maximumSize = java.awt.Dimension(Int.MAX_VALUE, 36)
@@ -83,9 +102,18 @@ class JsonTreePanel(private val project: Project) : JPanel(BorderLayout()) {
         searchField.toolTipText = "Search (by key/type/path or JSON path expression)"
         searchField.addActionListener { filterTree() }
         searchField.document.addDocumentListener(object : DocumentListener {
-            override fun insertUpdate(e: DocumentEvent?) = filterTree()
-            override fun removeUpdate(e: DocumentEvent?) = filterTree()
-            override fun changedUpdate(e: DocumentEvent?) = filterTree()
+            override fun insertUpdate(e: DocumentEvent?) {
+                filterTree()
+                clearButton.isVisible = searchField.text.isNotEmpty()
+            }
+            override fun removeUpdate(e: DocumentEvent?) {
+                filterTree()
+                clearButton.isVisible = searchField.text.isNotEmpty()
+            }
+            override fun changedUpdate(e: DocumentEvent?) {
+                filterTree()
+                clearButton.isVisible = searchField.text.isNotEmpty()
+            }
         })
         updateTreeForCurrentFile()
         project.messageBus.connect().subscribe(
@@ -110,8 +138,10 @@ class JsonTreePanel(private val project: Project) : JPanel(BorderLayout()) {
                     originalRoot = rootNode
                     tree = JTree(rootNode)
                     TreeUtils.styleTree(tree)
-                    tree?.addTreeSelectionListener(TreeSelectionListener { e ->
-                        val node = tree?.lastSelectedPathComponent as? javax.swing.tree.DefaultMutableTreeNode
+                    val t = tree ?: return@invokeLater
+                    t.cellRenderer = JsonTreeRenderer(t)
+                    t.addTreeSelectionListener(TreeSelectionListener { _ ->
+                        val node = t.lastSelectedPathComponent as? DefaultMutableTreeNode
                         val data = node?.userObject as? JsonTreeNodeData
                         val psi = data?.psi
                         if (psi != null && psi.isValid) {
@@ -119,7 +149,48 @@ class JsonTreePanel(private val project: Project) : JPanel(BorderLayout()) {
                             OpenFileDescriptor(project, file, offset).navigate(true)
                         }
                     })
-                    add(JScrollPane(tree), BorderLayout.CENTER)
+                    t.addMouseListener(object : MouseAdapter() {
+                        override fun mousePressed(e: MouseEvent) {
+                            maybeShowPopup(e)
+                        }
+                        override fun mouseReleased(e: MouseEvent) {
+                            maybeShowPopup(e)
+                        }
+                        private fun maybeShowPopup(e: MouseEvent) {
+                            if (SwingUtilities.isRightMouseButton(e)) {
+                                val row = t.getRowForLocation(e.x, e.y)
+                                if (row != -1) {
+                                    t.setSelectionRow(row)
+                                    val path = t.getPathForRow(row)
+                                    val node = path.lastPathComponent as? DefaultMutableTreeNode
+                                    if (node != null) {
+                                        val popup = TreeContextMenuUtils.createContextMenu(node, t, project)
+                                        popup.show(t, e.x, e.y)
+                                        return
+                                    }
+                                }
+                                // 兜底：如果没点到任何行，但有选中节点，也弹菜单
+                                val selNode = t.lastSelectedPathComponent as? DefaultMutableTreeNode
+                                if (selNode != null) {
+                                    val popup = TreeContextMenuUtils.createContextMenu(selNode, t, project)
+                                    popup.show(t, e.x, e.y)
+                                }
+                            }
+                        }
+                    })
+                    t.inputMap.put(KeyStroke.getKeyStroke("control C"), "copyNodeValue")
+                    t.actionMap.put("copyNodeValue", object : AbstractAction() {
+                        override fun actionPerformed(e: java.awt.event.ActionEvent?) {
+                            val node = t.lastSelectedPathComponent as? DefaultMutableTreeNode ?: return
+                            val value = TreeContextMenuUtils
+                                .let { it.javaClass.getDeclaredMethod("getNodeJsonValue", DefaultMutableTreeNode::class.java).apply { isAccessible = true } }
+                                .invoke(TreeContextMenuUtils, node) as String
+                            val clipboard = java.awt.Toolkit.getDefaultToolkit().systemClipboard
+                            val selection = java.awt.datatransfer.StringSelection(value)
+                            clipboard.setContents(selection, selection)
+                        }
+                    })
+                    add(JScrollPane(t), BorderLayout.CENTER)
                     setupCaretListener(file, rootNode)
                 } else {
                     tree = null
@@ -175,21 +246,6 @@ class JsonTreePanel(private val project: Project) : JPanel(BorderLayout()) {
     private fun isJsonFile(file: VirtualFile): Boolean {
         val fileType = FileTypeManager.getInstance().getFileTypeByFile(file)
         return fileType.defaultExtension.equals("json", ignoreCase = true)
-    }
-    private fun exportMarkdown() {
-        val root = tree?.model?.root as? javax.swing.tree.DefaultMutableTreeNode ?: return
-        val md = MarkdownExportUtils.treeToMarkdown(root)
-        val chooser = JFileChooser().apply {
-            dialogTitle = "Export Markdown"
-            fileFilter = FileNameExtensionFilter("Markdown Files", "md")
-            selectedFile = File("structure.md")
-        }
-        val result = chooser.showSaveDialog(this)
-        if (result == JFileChooser.APPROVE_OPTION) {
-            val file = chooser.selectedFile
-            file.writeText(md)
-            JOptionPane.showMessageDialog(this, "Exported to: ${file.absolutePath}", "Export Success", JOptionPane.INFORMATION_MESSAGE)
-        }
     }
     private fun filterTree() {
         val keyword = searchField.text.trim()

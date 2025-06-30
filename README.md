@@ -1,0 +1,46 @@
+# Json Navigator
+
+Json Navigator 是一款为 IntelliJ IDEA 平台开发的插件，专为大 JSON 文件的结构化导航、编辑和阅读体验优化而设计。
+
+## 主要功能
+- 树形结构导航：以树形视图展示 JSON 文件结构，支持对象、数组、字段等层级展开/折叠
+- 节点跳转：点击树节点可自动跳转到主编辑区对应 JSON 位置
+- 搜索/过滤：支持关键字、路径、类型等多种方式过滤节点
+- 右键菜单：支持复制字段路径、复制节点值、折叠/展开子树
+- 节点右侧+/-按钮：便捷展开/收起子树
+- 搜索框清空按钮：一键清除搜索内容
+- 用户界面采用标准交互，支持大文件
+
+## 安装方法
+### 方式一：本地安装
+1. 使用 `./gradlew buildPlugin` 构建插件，生成的 zip 包位于 `build/distributions/` 目录下
+2. 在 IDEA 中依次选择 `Settings > Plugins > Install Plugin from Disk...`
+3. 选择上述 zip 包，安装并重启 IDEA
+
+### 方式二：JetBrains Marketplace（待发布）
+1. 在插件市场搜索 `Json Navigator`
+2. 一键安装并重启 IDEA
+
+## 使用说明
+- 打开任意 JSON 文件，侧边栏会自动显示 Json Navigator 工具窗口
+- 可通过树形结构快速定位、跳转、折叠/展开节点
+- 支持右键菜单和快捷键操作，提升编辑效率
+- 搜索框支持多种表达式，便于快速定位字段
+
+## 兼容性
+- 兼容 IntelliJ IDEA 2022.1 及以上版本（建议在 plugin.xml 中根据实际情况调整 `<idea-version>`）
+- 依赖 IntelliJ 平台自带的 JSON 支持
+
+## 贡献与反馈
+- 欢迎提交 issue、PR 或建议！
+- 如有问题可通过 JetBrains Marketplace 或项目主页联系作者
+
+## AI 开发说明
+本项目全程由AI进行开发，相关文档包括：
+- `ai_summary.md`：项目总览、阶段进度、当前待办事项
+- `ai_memory.md`：详细的开发过程记录、决策历史、遗留问题
+
+**若想继续 AI 开发或参与贡献，请务必同步这两个文件，确保 AI 能够理解项目上下文和开发历史。**
+
+## License
+本项目采用 MIT License，详见 LICENSE 文件。 

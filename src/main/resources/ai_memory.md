@@ -1,6 +1,6 @@
 # ai_memory.md
 
-## 2024-06-20
+## 2025-06-28
 ### 本次目标
 - 实现树节点右键菜单，支持：
   - 复制字段路径
@@ -30,76 +30,9 @@
 - 只在用户主动点击时同步，不做实时自动同步。
 - UI风格与现有按钮保持一致。
 
-### 关键代码/设计片段
-```kotlin
-// 右键菜单整行弹出，兼容兜底
- t.addMouseListener(object : MouseAdapter() {
-    override fun mousePressed(e: MouseEvent) { maybeShowPopup(e) }
-    override fun mouseReleased(e: MouseEvent) { maybeShowPopup(e) }
-    private fun maybeShowPopup(e: MouseEvent) {
-        if (SwingUtilities.isRightMouseButton(e)) {
-            val row = t.getRowForLocation(e.x, e.y)
-            if (row != -1) {
-                t.setSelectionRow(row)
-                val path = t.getPathForRow(row)
-                val node = path.lastPathComponent as? DefaultMutableTreeNode
-                if (node != null) {
-                    val popup = TreeContextMenuUtils.createContextMenu(node, t, project)
-                    popup.show(t, e.x, e.y)
-                    return
-                }
-            }
-            // 兜底：如果没点到任何行，但有选中节点，也弹菜单
-            val selNode = t.lastSelectedPathComponent as? DefaultMutableTreeNode
-            if (selNode != null) {
-                val popup = TreeContextMenuUtils.createContextMenu(selNode, t, project)
-                popup.show(t, e.x, e.y)
-            }
-        }
-    }
- })
-
-// 搜索框右侧清空按钮
-private val clearButton = JButton("×").apply {
-    toolTipText = "Clear search"
-    isVisible = false
-    isFocusPainted = false
-    isBorderPainted = false
-    isContentAreaFilled = false
-    preferredSize = java.awt.Dimension(24, 24)
-    addActionListener {
-        searchField.text = ""
-        filterTree()
-    }
-}
-private val searchPanel = JPanel().apply {
-    layout = BoxLayout(this, BoxLayout.X_AXIS)
-    add(JLabel("Search: "))
-    add(searchField)
-    add(clearButton)
-    add(helpButton)
-    border = BorderFactory.createEmptyBorder(5, 5, 5, 5)
-}
-searchField.document.addDocumentListener(object : DocumentListener {
-    override fun insertUpdate(e: DocumentEvent?) {
-        filterTree()
-        clearButton.isVisible = searchField.text.isNotEmpty()
-    }
-    override fun removeUpdate(e: DocumentEvent?) {
-        filterTree()
-        clearButton.isVisible = searchField.text.isNotEmpty()
-    }
-    override fun changedUpdate(e: DocumentEvent?) {
-        filterTree()
-        clearButton.isVisible = searchField.text.isNotEmpty()
-    }
-})
-```
-
 ### 本次遗留问题与下次待办
 - [ ] 代码结构和UI小优化
 - [ ] 其他体验细节完善
-- [ ] 编辑区定位按钮：在导航树面板增加"定位"按钮，点击时将编辑区光标所在 JSON 节点在树中高亮/滚动到可见
 
 ### 阶段收尾总结
 - 经过多轮开发与优化，Json Navigator 插件已实现核心功能、主要交互和体验细节，结构清晰，文档完善。

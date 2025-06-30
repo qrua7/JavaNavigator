@@ -5,16 +5,35 @@
 
     <!-- Public plugin name should be written in Title Case.
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-name -->
-    <name>JsonNavigator</name>
+    <name>Json Navigator</name>
 
     <!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
-    <vendor url="https://www.yourcompany.com">YourCompany</vendor>
+    <vendor url="https://github.com/yourusername/json-navigator">Json Navigator Team</vendor>
 
     <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-description -->
     <description><![CDATA[
-    Enter short description for your plugin here.<br>
-    <em>most HTML tags may be used</em>
+    <p>Json Navigator is a plugin for IntelliJ IDEA that provides structured navigation and editing experience for JSON files.</p>
+    
+    <h3>Features:</h3>
+    <ul>
+        <li><b>Tree View Navigation:</b> Display JSON structure as a tree with expand/collapse functionality</li>
+        <li><b>Node Navigation:</b> Click tree nodes to jump to the corresponding position in the editor</li>
+        <li><b>Search & Filter:</b> Filter nodes by keyword, path, type, and more</li>
+        <li><b>Context Menu Actions:</b> Copy field paths, copy node values, expand/collapse subtrees</li>
+        <li><b>Quick Controls:</b> +/- buttons on nodes for expand/collapse, clear button in search box</li>
+        <li><b>User Interface:</b> Clean interface with standard interactions, supports large files</li>
+    </ul>
+    
+    <h3>Use cases:</h3>
+    <ul>
+        <li>Working with JSON configuration files</li>
+        <li>API response analysis</li>
+        <li>JSON schema exploration</li>
+        <li>Data structure navigation</li>
+    </ul>
+    
+    <p><em>This project was developed entirely by AI.</em></p>
   ]]></description>
 
     <!-- Product and plugin compatibility requirements.
@@ -22,12 +41,32 @@
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.modules.json</depends>
 
+    <!-- Plugin version -->
+    <version>1.0.0</version>
+
+    <!-- Plugin compatibility -->
+    <idea-version since-build="221"/>
+
+    <!-- Change notes for the latest version -->
+    <change-notes><![CDATA[
+    <h3>Version 1.0.0 - Initial Release</h3>
+    <ul>
+        <li>Tree view navigation for JSON files</li>
+        <li>Node navigation with editor jump functionality</li>
+        <li>Search and filtering capabilities</li>
+        <li>Context menu with copy and expand/collapse actions</li>
+        <li>Quick controls (+/- buttons, clear search)</li>
+        <li>User interface with standard interactions</li>
+        <li>Support for large JSON files</li>
+    </ul>
+  ]]></change-notes>
+
     <!-- Extension points defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
         <toolWindow id="JsonNavigator"
                     anchor="right"
-                  factoryClass="chi.quran0.jsonnavigator.ui.JsonNavigatorToolWindowFactory"
+                    factoryClass="chi.quran0.jsonnavigator.ui.JsonNavigatorToolWindowFactory"
                     icon="META-INF/pluginIcon.svg"
                     secondary="false"/>
     </extensions>

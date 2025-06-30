@@ -29,7 +29,8 @@ dependencies {
 intellijPlatform {
     pluginConfiguration {
         ideaVersion {
-            sinceBuild = "242"
+            sinceBuild = "221"
+            untilBuild = "252"
         }
 
         changeNotes = """
